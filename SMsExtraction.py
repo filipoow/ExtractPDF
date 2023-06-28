@@ -6,7 +6,7 @@ import os
 import re
 
 #Importando bases do Excel para apoio
-veiculos = pd.read_excel(r'CONFIG\VEICULOS.xlsx')
+veiculos = pd.read_excel(r'CONFIG\PLACAS.xlsx')
 regiao = pd.read_excel(r'CONFIG\UF_REGIAO.xlsx')
 base_sm = pd.read_excel(r'SMs.xlsx')
 
