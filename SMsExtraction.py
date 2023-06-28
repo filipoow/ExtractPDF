@@ -1,13 +1,13 @@
-# Importando as bibliotecas
 import pandas as pd
 import numpy as np
 import PyPDF2
 import os
 import re
 
-#Importando bases do Excel para apoio
-veiculos = pd.read_excel(r'CONFIG\PLACAS.xlsx')
+#Configurações iniciais dos caminhos
+caminho_pdf = r'C:\Users\karina.teotonio\Desktop\Karina Cristina\SMs Script\SM'
 regiao = pd.read_excel(r'CONFIG\UF_REGIAO.xlsx')
+veiculos = pd.read_excel(r'CONFIG\PLACAS.xlsx')
 base_sm = pd.read_excel(r'SMs.xlsx')
 
 def extrair_informacoes(texto):
@@ -183,8 +183,6 @@ def obter_primeiro_valor(lista):
     else:
         return ''
 
-# Configurações iniciais
-caminho_pdf = r'C:\Users\karina.teotonio\Desktop\Karina Cristina\SMs Script\SM'
 lista_pdf = os.listdir(caminho_pdf)
 pdfVazio = pd.DataFrame()
 
@@ -249,12 +247,9 @@ for file in lista_pdf:
     # Determinando o tipo de ROTA
     pdfExcel['TIPO_ROTA'] = pdfExcel.apply(lambda row: determinar_tipo_rota(row['ORIGEM.LOCAL'], row['DESTINO.LOCAL'],row['ROTA UNIFICADA?']), axis=1)
 
-    # Adicionando a região
+    #Adicionando a região
     pdfExcel['UF'] = pdfExcel['DESTINO'].str[-2:]
     pdfExcel = pdfExcel.merge(right=regiao, on='UF').drop(columns=['UF'])
-
-    # Adicionando a empresa
-    pdfExcel = pdfExcel.merge(right=veiculos, on='PLACA_CAV')
 
     # Trazendo o valor do DESTINO INCLUÍDO
     if 'DESTINO.INCLUÍDO.LOCAL' in pdfExcel.columns.tolist():
@@ -305,9 +300,19 @@ for file in lista_pdf:
     # Transformando o tipo de VALOR
     pdfExcel['VALOR R$'] = pdfExcel.apply(lambda row: transformar_valor(row['VALOR R$']), axis=1)
     
-    # Reordenando as colunas do DF
-    pdfExcel = pdfExcel[['DATA','HORA','SM','VALOR R$','ORIGEM','ROTA UNIFICADA?','DESTINO INCLUÍDO','DESTINO','ROTA','REGIAO','TIPO_ROTA','TIPO_OPERACIONAL','PLACA_CAV','PLACA_CARRETA','EMPRESA','MOTORISTA','CPF','MOTORISTA_2','CPF_2','ISCA','MANIFESTO','OBSERVAÇÃO','TRECHO','OCORRÊNCIA','LOCAL DA OCORRÊNCIA','UF do LOCAL DA OCORRÊNCIA','CATEGORIA','PRIORIDADE','IMAGEM','OCORRÊNCIA_2','LOCAL DA OCORRÊNCIA_2','UF do LOCAL DA OCORRÊNCIA_2','CATEGORIA_2','PRIORIDADE_2','IMAGEM_2']]
+    # Concatenando todos os PDFs
     pdfVazio = pd.concat([pdfVazio,pdfExcel])
+
+    # Removendo a coluna de empresa
+    pdfVazio = pdfVazio.drop(columns=['EMPRESA'])
+    
+    # Adicionando a empresa
+    pdfVazio = pdfVazio.merge(right=veiculos, on='PLACA_CAV')
+
+    # Reordenando as colunas do DF
+    pdfVazio = pdfVazio[['DATA','HORA','SM','VALOR R$','ORIGEM','ROTA UNIFICADA?','DESTINO INCLUÍDO','DESTINO','ROTA','REGIAO','TIPO_ROTA','TIPO_OPERACIONAL','PLACA_CAV','PLACA_CARRETA','EMPRESA','MOTORISTA','CPF','MOTORISTA_2','CPF_2','ISCA','MANIFESTO','OBSERVAÇÃO','TRECHO','OCORRÊNCIA','LOCAL DA OCORRÊNCIA','UF do LOCAL DA OCORRÊNCIA','CATEGORIA','PRIORIDADE','IMAGEM','OCORRÊNCIA_2','LOCAL DA OCORRÊNCIA_2','UF do LOCAL DA OCORRÊNCIA_2','CATEGORIA_2','PRIORIDADE_2','IMAGEM_2']]
+
+    # Ordenando de forma crescente
     pdfVazio = pdfVazio.sort_values(by='SM',ascending=True)
 # Exportando o arquivo para Excel
 pdfVazio.to_excel('SMs.xlsx',index=False)
