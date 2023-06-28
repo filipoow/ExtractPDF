@@ -6,6 +6,7 @@ import os
 import re
 
 #Importando bases do Excel para apoio
+veiculos = pd.read_excel(r'CONFIG\VEICULOS.xlsx')
 regiao = pd.read_excel(r'CONFIG\UF_REGIAO.xlsx')
 base_sm = pd.read_excel(r'SMs.xlsx')
 
@@ -253,7 +254,7 @@ for file in lista_pdf:
     pdfExcel = pdfExcel.merge(right=regiao, on='UF').drop(columns=['UF'])
 
     # Adicionando a empresa
-    #pdfExcel = pdfExcel.merge(right=veiculos, on='PLACA_CAV')
+    pdfExcel = pdfExcel.merge(right=veiculos, on='PLACA_CAV')
 
     # Trazendo o valor do DESTINO INCLUÍDO
     if 'DESTINO.INCLUÍDO.LOCAL' in pdfExcel.columns.tolist():
