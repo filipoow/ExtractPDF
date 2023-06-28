@@ -1,9 +1,11 @@
+# Importando as bibliotecas
 import pandas as pd
 import numpy as np
 import PyPDF2
 import os
 import re
 
+#Importando bases do Excel para apoio
 regiao = pd.read_excel(r'CONFIG\UF_REGIAO.xlsx')
 base_sm = pd.read_excel(r'SMs.xlsx')
 
