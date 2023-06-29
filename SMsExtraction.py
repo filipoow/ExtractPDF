@@ -6,7 +6,7 @@ import os
 import re
 
 #Configurações iniciais dos caminhos
-caminho_pdf = r'C:\Users\karina.teotonio\Desktop\Karina Cristina\SMs Script\SM'
+caminho_pdf = r'ADICIONAR O CAMINHO DA PASTA CHAMADA SM'
 regiao = pd.read_excel(r'CONFIG\UF_REGIAO.xlsx')
 veiculos = pd.read_excel(r'CONFIG\PLACAS.xlsx')
 base_sm = pd.read_excel(r'SMs.xlsx')
@@ -288,6 +288,7 @@ for file in lista_pdf:
     pdfExcel['CPF_2'] = pd.to_numeric(pdfExcel['CPF_2'])
     pdfExcel['DATA'] = pd.to_datetime(pdfExcel['DATA'],dayfirst=True)
     pdfExcel['VALOR R$'] = pdfExcel['VALOR R$'].str.replace('R$','',regex=False)
+    pdfExcel['HORA'] = pd.to_datetime(pdfExcel['HORA']).dt.time
 
     # Ajustando possíveis erros
     pdfExcel['MANIFESTO'] = pdfExcel['MANIFESTO'].apply(ajustar_erros)
