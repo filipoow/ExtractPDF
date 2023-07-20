@@ -1,12 +1,16 @@
-# Importando as bibliotecas
 import pandas as pd
 import numpy as np
 import PyPDF2
+import shutil
 import os
 import re
 
-#Configurações iniciais dos caminhos
-caminho_pdf = r'ADICIONAR O CAMINHO DA PASTA CHAMADA SM'
+#Adicionar os caminhos
+caminho_da_pasta = os.getcwd()
+
+#Configurações iniciais
+caminho_backup = fr'{caminho_da_pasta}\BACKUP'
+caminho_pdf = fr'{caminho_da_pasta}\SM'
 regiao = pd.read_excel(r'CONFIG\UF_REGIAO.xlsx')
 veiculos = pd.read_excel(r'CONFIG\PLACAS.xlsx')
 base_sm = pd.read_excel(r'SMs.xlsx')
@@ -160,6 +164,14 @@ def ajustar_erros(texto):
     else:
         return texto
     
+def ajustar_erros_lacre(texto):
+    padrao = r'^(.*?)LACRE:'
+    resultado = re.search(padrao, texto)
+    if resultado:
+        return resultado.group(1).strip()
+    else:
+        return texto
+    
 def ajustar_erros_paginacao(texto):
     padrao = r'^(.*?)SOLICITACAO DE MONITORAMENTOSM:'
     resultado = re.search(padrao, texto)
@@ -172,12 +184,6 @@ def transformar_valor(valor):
     valor_numerico = float(valor.replace('.','').replace(',','.'))  
     return valor_numerico
 
-def excluir_arquivos_pasta(pasta):
-    for arquivo in os.listdir(pasta):
-        caminho_arquivo = os.path.join(pasta,arquivo)
-        if os.path.isfile(caminho_arquivo):
-            os.remove(caminho_arquivo)
-
 def obter_primeiro_valor(lista):
     if lista:
         return lista[0]
@@ -188,6 +194,7 @@ lista_pdf = os.listdir(caminho_pdf)
 pdfVazio = pd.DataFrame()
 
 for file in lista_pdf:
+    
     informacoes_pdf = extrair_informacoes_pdf(fr'{caminho_pdf}/{file}')
 
     chaves = informacoes_pdf.keys()
@@ -236,15 +243,23 @@ for file in lista_pdf:
     #Removendo colunas desnecessárias
     pdfExcel = pdfExcel.drop(columns=['TELEFONE'])
 
+    lista_colunas = pdfExcel.columns.tolist()
+
     # Descobrindo o tamanho do DESTINO.INCLUÍDO.LOCAL
-    if 'DESTINO.INCLUÍDO.LOCAL' not in pdfExcel.columns.tolist():
+    if 'DESTINO.INCLUÍDO.LOCAL' not in lista_colunas:
         pdfExcel['TAM'] = 0
     else:
         pdfExcel['TAM'] = pdfExcel['DESTINO.INCLUÍDO.LOCAL'].apply(len)
 
+    if 'ORIGEM.LOCAL' not in lista_colunas:
+        pdfExcel['ORIGEM.LOCAL'] = pdfExcel['ORIGEM']
+
+    if 'DESTINO.LOCAL' not in lista_colunas:
+        pdfExcel['DESTINO.LOCAL'] = pdfExcel['DESTINO']
+
     # Determinando se a ROTA é UNIFICADA
     pdfExcel['ROTA UNIFICADA?'] = pdfExcel.apply(lambda row: determinar_rota_unificada(row['TAM']), axis=1)
-    
+
     # Determinando o tipo de ROTA
     pdfExcel['TIPO_ROTA'] = pdfExcel.apply(lambda row: determinar_tipo_rota(row['ORIGEM.LOCAL'], row['DESTINO.LOCAL'],row['ROTA UNIFICADA?']), axis=1)
 
@@ -292,6 +307,7 @@ for file in lista_pdf:
 
     # Ajustando possíveis erros
     pdfExcel['MANIFESTO'] = pdfExcel['MANIFESTO'].apply(ajustar_erros)
+    pdfExcel['MANIFESTO'] = pdfExcel['MANIFESTO'].apply(ajustar_erros_lacre)
     pdfExcel['OBSERVAÇÃO'] = pdfExcel['OBSERVAÇÃO'].apply(ajustar_erros)
     pdfExcel['ISCA'] = pdfExcel['ISCA'].apply(ajustar_erros)
 
@@ -314,7 +330,18 @@ for file in lista_pdf:
     # Reordenando as colunas do DF
     pdfVazio = pdfVazio[['DATA','HORA','SM','VALOR R$','ORIGEM','ROTA UNIFICADA?','DESTINO INCLUÍDO','DESTINO','ROTA','REGIAO','TIPO_ROTA','TIPO_OPERACIONAL','PLACA_CAV','PLACA_CARRETA','EMPRESA','MOTORISTA','CPF','MOTORISTA_2','CPF_2','ISCA','MANIFESTO','OBSERVAÇÃO','TRECHO','OCORRÊNCIA','LOCAL DA OCORRÊNCIA','UF do LOCAL DA OCORRÊNCIA','CATEGORIA','PRIORIDADE','IMAGEM','OCORRÊNCIA_2','LOCAL DA OCORRÊNCIA_2','UF do LOCAL DA OCORRÊNCIA_2','CATEGORIA_2','PRIORIDADE_2','IMAGEM_2']]
 
-    # Ordenando de forma crescente
-    pdfVazio = pdfVazio.sort_values(by='SM',ascending=True)
+#Concatenando na base
+base_sm = pd.concat([base_sm,pdfVazio])
+
+# Ordenando de forma crescente
+base_sm = base_sm.sort_values(by='SM',ascending=True)
+
 # Exportando o arquivo para Excel
-pdfVazio.to_excel('SMs.xlsx',index=False)
+base_sm.to_excel('SMs.xlsx',index=False)
+
+#Movendo os arquivos 
+for i in lista_pdf:
+    #Local atual do arquivo
+    local_atual = fr'{caminho_pdf}/{i}'
+    local_novo = fr'{caminho_backup}/{i}'
+    shutil.move(local_atual,local_novo)
